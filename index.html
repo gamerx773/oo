@@ -3,519 +3,454 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Survive Lava for Brainrots - Accurate Engine</title>
+    <title>Survive Lava & Studio Workspace</title>
     <!-- Include Three.js for 3D Graphics Engine -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; user-select: none; }
+        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', Tahoma, sans-serif; user-select: none; background: #000; }
         #canvas-container { width: 100%; height: 100%; display: none; }
         
-        /* Auth Overlay Screen */
-        .overlay-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #11111a, #07070d); display: flex; justify-content: center; align-items: center; z-index: 100; }
-        .auth-box { background: rgba(255, 255, 255, 0.03); padding: 40px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); width: 320px; text-align: center; color: white; }
-        .auth-box h2 { margin-bottom: 24px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
-        .auth-box input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 8px; border: none; background: rgba(255,255,255,0.08); color: white; box-sizing: border-box; font-size: 14px; transition: 0.2s; }
-        .auth-box input:focus { background: rgba(255,255,255,0.15); outline: none; }
-        .auth-box button { width: 100%; padding: 14px; margin-top: 18px; border-radius: 8px; border: none; background: #0066ff; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 14px; letter-spacing: 1px; }
-        .auth-box button:hover { background: #0052cc; }
-        .auth-switch { margin-top: 18px; font-size: 12px; color: #888; cursor: pointer; }
+        /* Roblox Style Auth Gate Overlay Screen */
+        .overlay-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #191919; display: flex; justify-content: center; align-items: center; z-index: 500; }
+        .auth-box { background: #222222; padding: 35px; border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid #333; width: 340px; text-align: center; color: white; }
+        .auth-box h2 { font-size: 22px; font-weight: 600; margin-bottom: 20px; }
+        .auth-box input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 3px; border: 1px solid #444; background: #111; color: white; box-sizing: border-box; font-size: 14px; }
+        .auth-box input:focus { border-color: #00a2ff; outline: none; }
+        .auth-box button { width: 100%; padding: 12px; margin-top: 15px; border-radius: 3px; border: none; background: #00a2ff; color: white; font-weight: bold; cursor: pointer; font-size: 15px; }
         
-        /* HUD UI Overlay Elements */
-        #hud { position: absolute; top: 20px; left: 20px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); pointer-events: none; display: none; z-index: 10; }
-        .hud-panel { background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #fff; }
-        .zone-tag { font-size: 26px; font-weight: 900; letter-spacing: 1px; }
-        .timer-tag { font-size: 18px; font-family: monospace; color: #ffaa00; margin-top: 5px; }
-        .cash-tag { font-size: 20px; color: #00ff88; font-weight: bold; }
+        /* Gameplay HUD Layout Panels */
+        #hud { position: absolute; top: 15px; left: 15px; color: white; pointer-events: none; display: none; z-index: 10; font-family: 'Arial Black', sans-serif; }
+        .hud-panel { background: rgba(25, 25, 25, 0.85); padding: 12px 24px; border: 2px solid #3d3d3d; border-radius: 6px; margin-bottom: 8px; }
+        .zone-tag { font-size: 28px; font-weight: 900; -webkit-text-stroke: 1px black; }
+        .timer-tag { font-size: 16px; font-family: monospace; color: #ffaa00; }
+        .stat-tag { font-size: 18px; color: #00ff88; font-weight: bold; margin-top: 4px; }
         
-        #studio-btn { position: absolute; top: 20px; right: 20px; padding: 14px 28px; background: #e25822; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; display: none; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 14px; letter-spacing: 1px; }
+        #studio-btn { position: absolute; top: 15px; right: 15px; padding: 12px 24px; background: #00a2ff; color: white; font-weight: bold; border: 1px solid #0084d6; border-radius: 3px; cursor: pointer; display: none; z-index: 100; font-size: 14px; }
         
-        /* Roblox Studio Inspired Level Editor Interface */
-        #studio-panel { position: absolute; top: 0; left: 0; width: 320px; height: 100%; background: #1e1e1e; border-right: 2px solid #2d2d2d; color: #fff; display: none; flex-direction: column; z-index: 60; box-sizing: border-box; }
-        .studio-header { padding: 18px; background: #151515; font-weight: bold; font-size: 16px; border-bottom: 1px solid #2d2d2d; display: flex; justify-content: space-between; align-items: center; letter-spacing: 0.5px; }
-        .studio-close { cursor: pointer; color: #ff4444; font-size: 18px; }
-        .studio-content { padding: 20px; flex: 1; overflow-y: auto; }
-        .studio-group { margin-bottom: 22px; }
-        .studio-group label { display: block; font-size: 11px; color: #999; margin-bottom: 6px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
-        .studio-group select, .studio-group input { width: 100%; padding: 10px; background: #2d2d2d; border: 1px solid #3d3d3d; color: white; border-radius: 6px; box-sizing: border-box; font-size: 13px; }
-        .studio-btn-action { width: 100%; padding: 12px; background: #007acc; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 13px; transition: 0.2s; }
-        .studio-btn-action:hover { background: #0062a3; }
-        
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; background: white; border-radius: 5px; transform: translate(-50%, -50%); display: none; pointer-events: none; z-index: 5; border: 1.5px solid black; }
+        /* Full-Screen Immersive Roblox Studio Interface Replica */
+        #roblox-studio-gui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; grid-template-rows: 40px 90px 1fr; grid-template-columns: 240px 1fr 260px; z-index: 200; background: #222; color: #fff; font-size: 13px; }
+        .studio-top-bar { grid-column: 1 / -1; background: #1b1b1b; border-bottom: 1px solid #111; display: flex; align-items: center; padding: 0 10px; font-size: 12px; color: #aaa; }
+        .studio-ribbon { grid-column: 1 / -1; background: #2d2d2d; border-bottom: 1px solid #1b1b1b; display: flex; align-items: center; padding: 10px; gap: 15px; }
+        .ribbon-group { display: flex; flex-direction: column; align-items: center; border-right: 1px solid #444; padding-right: 15px; }
+        .ribbon-group-title { font-size: 10px; color: #888; text-transform: uppercase; margin-top: 4px; }
+        .ribbon-tools { display: flex; gap: 8px; }
+        .ribbon-btn { background: #3a3a3a; border: 1px solid #555; color: white; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .ribbon-btn.active { background: #00a2ff; border-color: #0084d6; }
+        .studio-left-panel { background: #2d2d2d; border-right: 1px solid #1b1b1b; display: flex; flex-direction: column; }
+        .panel-header { background: #222; padding: 8px 12px; font-weight: bold; border-bottom: 1px solid #1b1b1b; font-size: 12px; color: #aaa; text-transform: uppercase; }
+        .toolbox-list { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .toolbox-card { background: #3a3a3a; border: 1px solid #444; padding: 10px; border-radius: 3px; cursor: pointer; text-align: center; }
+        .studio-viewport-container { position: relative; background: #000; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: #fff; border-radius: 5px; transform: translate(-50%, -50%); border: 1px solid #000; pointer-events: none; }
+        .studio-right-panel { background: #2d2d2d; border-left: 1px solid #1b1b1b; display: flex; flex-direction: column; grid-row: 3 / -1; grid-column: 3; }
+        .explorer-tree { flex: 1; border-bottom: 1px solid #1b1b1b; overflow-y: auto; padding: 5px; font-family: monospace; }
+        .tree-node { padding: 4px 8px; cursor: pointer; }
+        .tree-node.selected { background: #007acc; color: white; }
+        .properties-grid { flex: 1.5; overflow-y: auto; display: flex; flex-direction: column; }
+        .prop-row { display: grid; grid-template-columns: 100px 1fr; border-bottom: 1px solid #3a3a3a; padding: 6px 8px; align-items: center; font-size: 12px; }
+        .prop-label { color: #aaa; }
+        .prop-val input, .prop-val select { width: 100%; background: #1b1b1b; border: 1px solid #444; color: #fff; padding: 4px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-    <!-- Authentication Interface Gate -->
+    <!-- Authentication Gate System -->
     <div id="auth-screen" class="overlay-screen">
         <div class="auth-box">
-            <h2 id="auth-title">Account Login</h2>
+            <h2 id="auth-title">Roblox Player Login</h2>
             <input type="text" id="auth-username" placeholder="Username">
             <input type="password" id="auth-password" placeholder="Password">
-            <button id="auth-submit" onclick="handleAuth()">LOGIN</button>
-            <div id="auth-switch" class="auth-switch" onclick="toggleAuthMode()">New Creator? Register Profile</div>
+            <button id="auth-submit" onclick="handleAuth()">Sign In</button>
         </div>
     </div>
 
-    <!-- Gameplay Dashboard HUD -->
+    <!-- Gameplay HUD Overlay -->
     <div id="hud">
-        <div class="hud-panel" id="zone-panel">
+        <div class="hud-panel">
             <div id="zone-display" class="zone-tag">SAFE ZONE</div>
-            <div id="timer-display" class="timer-tag">LAVA SURGE IN: 25.0s</div>
+            <div id="timer-display" class="timer-tag">NEXT LAVA SURGE: 25.0s</div>
         </div>
-        <div class="hud-panel" style="border-left-color: #00ff88;">
-            <div id="cash-display" class="cash-tag">CASH: $0</div>
-            <div style="font-size: 12px; color: #aaa; margin-top: 2px;">Step on Shop pads to upgrade speed!</div>
+        <div class="hud-panel">
+            <div id="inventory-display" style="color: #ffaa00; margin-bottom: 5px;">Carrying: None</div>
+            <div id="cash-display" class="stat-tag">Cash: $0</div>
+            <div id="speed-display" style="font-size:12px; color:#aaa;">WalkSpeed: 16 | JumpPower: 14</div>
+            <div id="rebirth-display" style="font-size:13px; color:#ffff55; margin-top:4px;">Rebirth Level: 0</div>
         </div>
     </div>
     
-    <button id="studio-btn" onclick="toggleStudio()">🛠️ ROBLOX STUDIO</button>
+    <button id="studio-btn" onclick="toggleStudioWorkspace()">🛠️ Studio</button>
 
-    <!-- Interactive Workspace Level Editor Panel -->
-    <div id="studio-panel">
-        <div class="studio-header">
-            <span>Roblox Studio - Workspace Explorer</span>
-            <span class="studio-close" onclick="toggleStudio()">✕</span>
+    <!-- Visual Roblox Studio Framework Component Workspace Layout -->
+    <div id="roblox-studio-gui">
+        <div class="studio-top-bar">
+            <span>Roblox Studio V3 — Workspace_Project_Lava</span>
         </div>
-        <div class="studio-content">
-            <div class="studio-group">
-                <label>Toolbox: Primitive Assembly</label>
-                <select id="spawn-type">
-                    <option value="cube">Part (Block Solid)</option>
-                    <option value="sphere">Ball (Sphere Structural)</option>
-                </select>
-                <button class="studio-btn-action" onclick="spawnStudioObject()">Insert Object Asset</button>
+        <div class="studio-ribbon">
+            <div class="ribbon-group">
+                <div class="ribbon-tools">
+                    <button class="ribbon-btn active" id="tool-select" onclick="setStudioTool('select')">Select</button>
+                    <button class="ribbon-btn" id="tool-move" onclick="setStudioTool('move')">Move (Y)</button>
+                    <button class="ribbon-btn" id="tool-scale" onclick="setStudioTool('scale')">Scale (Y)</button>
+                </div>
+                <span class="ribbon-group-title">Tools</span>
             </div>
-            <hr style="border: 0; height: 1px; background: #2d2d2d; margin: 20px 0;">
-            <div class="studio-group">
-                <label>Properties Editor Window</label>
-                <div style="font-size: 11px; color:#666; margin-bottom:12px; line-height: 1.4;">Aim center dot crosshair at any object part asset inside the world viewport to load runtime attributes.</div>
-                
-                <label>BrickColor / RGB Material</label>
-                <input type="color" id="prop-color" value="#ffffff" onchange="updateSelectedProperty()">
-                
-                <label style="margin-top:12px;">Size - Y Vector (Height Axis)</label>
-                <input type="number" id="prop-scale-y" value="1" step="0.5" oninput="updateSelectedProperty()">
-                
-                <label style="margin-top:12px;">Position - Y Coordinate</label>
-                <input type="number" id="prop-pos-y" value="0" step="0.5" oninput="updateSelectedProperty()">
+            <div class="ribbon-group">
+                <button class="ribbon-btn" style="background: #27ae60;" onclick="testGameLive()">▶ Run Game</button>
+                <span class="ribbon-group-title">Simulation</span>
             </div>
-            <button class="studio-btn-action" style="background:#b32424;" onclick="deleteSelectedObject()">Destroy Selected Part</button>
+        </div>
+        <div class="studio-left-panel">
+            <div class="panel-header">Toolbox Assets</div>
+            <div class="toolbox-list">
+                <div class="toolbox-card" onclick="insertStudioAsset('Part')">📦 Block Part</div>
+                <div class="toolbox-card" onclick="insertStudioAsset('Truss')">🧱 Truss Column</div>
+            </div>
+        </div>
+        <div class="studio-viewport-container" id="studio-viewport"><div id="crosshair"></div></div>
+        <div class="studio-right-panel">
+            <div class="panel-header">Explorer Tree Hierarchy</div>
+            <div class="explorer-tree" id="explorer-tree-view"></div>
+            <div class="panel-header">Properties Attributes Explorer</div>
+            <div class="properties-grid">
+                <div class="prop-row"><div class="prop-label">BrickColor</div><div class="prop-val"><input type="color" id="p-color" onchange="applyPropertyChange()"></div></div>
+                <div class="prop-row"><div class="prop-label">Position.Y</div><div class="prop-val"><input type="number" id="p-pos-y" step="0.5" oninput="applyPropertyChange()"></div></div>
+                <div class="prop-row"><div class="prop-label">Size.Y</div><div class="prop-val"><input type="number" id="p-scale-y" min="0.1" step="0.5" oninput="applyPropertyChange()"></div></div>
+                <div style="padding:10px;"><button class="ribbon-btn" style="width:100%; background:#c0392b;" onclick="deleteStudioSelection()">Destroy Part Asset</button></div>
+            </div>
         </div>
     </div>
 
-    <div id="crosshair"></div>
     <div id="canvas-container"></div>
 
     <script>
-        // --- CORE GAME ARCHITECTURE ENGINE CONFIG ---
-        let isSignUp = false;
-        let isStudioMode = false;
-        let hasStudioAccess = false;
-
-        // Graphics Variables 
+        // --- ARCHITECTURAL VARIABLE ENGINE STATES ---
+        let isStudioMode = false, hasStudioAccess = false;
         let scene, camera, renderer, clock;
-        let player, playerVelocity = new THREE.Vector3();
-        let keys = {};
-        let objects = []; 
-        let safeZoneShopPad;
+        let player, playerVelocity = new THREE.Vector3(), keys = {};
+        let objects = [], worldWorkspaceGroup, activeHeldItemZone = null;
+        let lavaMesh, lavaHeight = -3.0, targetLavaHeight = -3.0, surgeTimer = 25.0, isLavaSurging = false;
         
-        // Horizontal Wave Game State Sync Constants
-        let cashBalance = 0;
-        let baseRunSpeed = 16; 
-        let surgeTimer = 25.0; 
-        let isLavaSurging = false;
-        let lavaPlaneMesh;
-        let targetLavaHeight = -2.0; 
-        
-        // Selection Tracking Vector Arrays
-        let selectedObject = null;
-        let raycaster = new THREE.Raycaster();
-        let mouse = new THREE.Vector2();
+        // Dynamic Player Upgrade Stats
+        let cash = 0, rebirthLevel = 0, baseWalkSpeed = 16.0, jumpHeightVelocity = 14.0;
 
-        // 3rd Person Orbit System Configurations
-        let cameraRotation = { theta: 0, phi: Math.PI / 5 };
-        let cameraRadius = 16;
-        let isRightMouseDown = false;
+        // Workspace Level Selection Systems Vectors
+        let selectedObject = null, activeTool = 'select';
+        let raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
+        let cameraRotation = { theta: 0, phi: Math.PI / 5 }, cameraRadius = 18, isRightMouseDown = false;
 
-        // Real Horizontal Field Game Rarity Matrix Definitions
+        // Exact Horizontal Progression Rarity Matrix Layout Coordinates
         const ZONES = {
-            SAFE:     { name: "SAFE ZONE", color: "#ffffff", hex: 0x3a3a3a, startZ: 30,    endZ: -20 },
-            COMMON:   { name: "COMMON",    color: "#b0b0b0", hex: 0x7f8c8d, startZ: -20,   endZ: -100 },
-            RARE:     { name: "RARE",      color: "#55ff55", hex: 0x2ecc71, startZ: -100,  endZ: -200 },
-            EPIC:     { name: "EPIC",      color: "#5555ff", hex: 0x3498db, startZ: -200,  endZ: -320 },
-            LEGENDARY:{ name: "LEGENDARY", color: "#ffff55", hex: 0xf1c40f, startZ: -320,  endZ: -460 },
-            MYTHIC:   { name: "MYTHIC",    color: "#ff55ff", hex: 0x9b59b6, startZ: -460,  endZ: -620 },
-            SECRET:   { name: "SECRET",    color: "#ff5555", hex: 0xe74c3c, startZ: -620,  endZ: -800 },
-            CELESTIAL:{ name: "CELESTIAL", color: "#55ffff", hex: 0x1abc9c, startZ: -800,  endZ: -1000 },
-            GODLY:    { name: "GODLY",     color: "#ffaa00", hex: 0xd35400, startZ: -1000, endZ: -1300 }
+            SAFE:      { name: "SAFE ZONE", color: "#ffffff", hex: 0x222222, startZ: 40,    endZ: -20 },
+            COMMON:    { name: "COMMON",    color: "#b5b5b5", hex: 0x5a5d64, startZ: -20,   endZ: -120 },
+            RARE:      { name: "RARE",      color: "#3bd642", hex: 0x1e5c21, startZ: -120,  endZ: -240 },
+            EPIC:      { name: "EPIC",      color: "#2977f2", hex: 0x163875, startZ: -240,  endZ: -380 },
+            LEGENDARY: { name: "LEGENDARY", color: "#fafd2b", hex: 0x737512, startZ: -380,  endZ: -540 },
+            MYTHIC:    { name: "MYTHIC",    color: "#df3bf0", hex: 0x62156b, startZ: -540,  endZ: -720 },
+            SECRET:    { name: "SECRET",    color: "#f52525", hex: 0x7a0f0f, startZ: -720,  endZ: -920 },
+            CELESTIAL: { name: "CELESTIAL", color: "#2bfaf3", hex: 0x106966, startZ: -920,  endZ: -1150 },
+            GODLY:     { name: "GODLY",     color: "#ff9000", hex: 0x854b00, startZ: -1150, endZ: -1400 }
         };
 
-        // --- AUTHENTICATION INTERFACE LOGIC ---
-        function toggleAuthMode() {
-            isSignUp = !isSignUp;
-            document.getElementById('auth-title').innerText = isSignUp ? "Create Admin User" : "Account Login";
-            document.getElementById('auth-submit').innerText = isSignUp ? "SIGN UP & LAUNCH" : "LOGIN";
-            document.getElementById('auth-switch').innerText = isSignUp ? "Already a Creator? Sign In" : "New Creator? Register Profile";
-        }
-
         function handleAuth() {
-            const user = document.getElementById('auth-username').value.trim();
-            const pass = document.getElementById('auth-password').value.trim();
-
-            if(!user || !pass) {
-                alert("Credentials inputs cannot remain empty.");
-                return;
-            }
-
-            // Secure Studio Portal Validation Key Switch
-            if(user === "king" && pass === "icreategames") {
+            const u = document.getElementById('auth-username').value.trim();
+            const p = document.getElementById('auth-password').value.trim();
+            if(u === "king" && p === "icreategames") {
                 hasStudioAccess = true;
                 document.getElementById('studio-btn').style.display = "block";
             }
-
             document.getElementById('auth-screen').style.display = "none";
             document.getElementById('canvas-container').style.display = "block";
             document.getElementById('hud').style.display = "block";
-            
-            initGameEngine();
+            initEngine();
         }
 
-        // --- GRAPHICS & RENDERING INITIALIZATION ---
-        function initGameEngine() {
+        function initEngine() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x080810);
-            scene.fog = new THREE.FogExp2(0x080810, 0.008);
+            scene.background = new THREE.Color(0x0c0c12);
+            scene.fog = new THREE.FogExp2(0x0c0c12, 0.007);
+            
+            worldWorkspaceGroup = new THREE.Group();
+            scene.add(worldWorkspaceGroup);
 
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2500);
             clock = new THREE.Clock();
-
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            // Lighting Rig Matrix
-            const ambient = new THREE.AmbientLight(0xffffff, 0.35);
-            scene.add(ambient);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+            const sun = new THREE.DirectionalLight(0xffffff, 0.7);
+            sun.position.set(150, 400, 50);
+            scene.add(sun);
 
-            const skySun = new THREE.DirectionalLight(0xffffff, 0.75);
-            skySun.position.set(100, 300, -200);
-            skySun.castShadow = true;
-            skySun.shadow.mapSize.width = 2048;
-            skySun.shadow.mapSize.height = 2048;
-            scene.add(skySun);
+            buildHorizontalRunwayWorld();
 
-            // Construct Flat Runway Fields Map Pipeline
-            generateHorizontalMap();
-
-            // Setup Playable Block Avatar Mesh
-            const avatarGeo = new THREE.BoxGeometry(1.6, 3.2, 1.6);
-            const avatarMat = new THREE.MeshStandardMaterial({ color: 0x0099ff, roughness: 0.4 });
-            player = new THREE.Mesh(avatarGeo, avatarMat);
-            player.position.set(0, 2, 10); // Spawns directly inside the safe baseline pad area
-            player.castShadow = true;
+            // Character Body Mesh Instance
+            player = new THREE.Mesh(new THREE.BoxGeometry(1.6, 3.2, 1.6), new THREE.MeshStandardMaterial({ color: 0xdddddd }));
+            player.position.set(0, 3, 20);
             scene.add(player);
 
-            // Setup Flat Surge Lava Object plane spanning the full area array 
-            const lavaGeo = new THREE.BoxGeometry(400, 4, 3000);
-            const lavaMat = new THREE.MeshStandardMaterial({ color: 0xff1100, emissive: 0xcc0000, roughness: 0.1 });
-            lavaPlaneMesh = new THREE.Mesh(lavaGeo, lavaMat);
-            lavaPlaneMesh.position.set(0, targetLavaHeight, -600);
-            scene.add(lavaPlaneMesh);
+            // Lava Threat Basin Mesh Plane
+            lavaMesh = new THREE.Mesh(new THREE.BoxGeometry(600, 6, 4000), new THREE.MeshStandardMaterial({ color: 0xff2200, emissive: 0xaa0000, roughness: 0.1 }));
+            lavaMesh.position.set(0, lavaHeight, -600);
+            scene.add(lavaMesh);
 
-            // Input Controllers Event Handlers
-            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('resize', onResize);
             window.addEventListener('keydown', (e) => keys[e.code] = true);
             window.addEventListener('keyup', (e) => keys[e.code] = false);
             window.addEventListener('mousedown', onMouseDown);
             window.addEventListener('mouseup', onMouseUp);
             window.addEventListener('mousemove', onMouseMove);
 
-            animateFrameLoop();
+            animateLoop();
         }
 
-        // --- MAP RUNWAY PIPELINE METHOD GENERATION ---
-        function generateHorizontalMap() {
-            // Loop array structural bounds to layout floor zones
-            for (let key in ZONES) {
-                const zData = ZONES[key];
-                const centerZ = (zData.startZ + zData.endZ) / 2;
-                const lengthDepth = Math.abs(zData.startZ - zData.endZ);
-                
-                // Floor plates representing the valley fields
-                const floorGeo = new THREE.BoxGeometry(80, 2, lengthDepth);
-                const floorMat = new THREE.MeshStandardMaterial({ color: zData.hex, roughness: 0.8 });
-                const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-                floorMesh.position.set(0, -1, centerZ);
-                floorMesh.receiveShadow = true;
-                floorMesh.userData = { isFloor: true, zoneName: zData.name };
-                scene.add(floorMesh);
-                objects.push(floorMesh);
+        function buildHorizontalRunwayWorld() {
+            for (let zKey in ZONES) {
+                const zone = ZONES[zKey];
+                const length = Math.abs(zone.startZ - zone.endZ);
+                const centerZ = (zone.startZ + zone.endZ) / 2;
 
-                // Safe Zone Speed Upgrade Shop Pad Matrix 
-                if (key === "SAFE") {
-                    const shopGeo = new THREE.BoxGeometry(8, 0.4, 8);
-                    const shopMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x003311 });
-                    safeZoneShopPad = new THREE.Mesh(shopGeo, shopMat);
-                    safeZoneShopPad.position.set(0, 0.2, 0);
-                    scene.add(safeZoneShopPad);
-                    continue; // Skip layout rocks for safety zone center field
+                // Base Structural Field Plates
+                const plate = new THREE.Mesh(new THREE.BoxGeometry(100, 2, length), new THREE.MeshStandardMaterial({ color: zone.hex, roughness: 0.8 }));
+                plate.position.set(0, -1, centerZ);
+                plate.receiveShadow = true;
+                plate.userData = { Name: `${zone.name}_FloorBase`, Unremovable: true };
+                worldWorkspaceGroup.add(plate);
+                objects.push(plate);
+
+                if(zKey === "SAFE") {
+                    // Purchase Rebirth Stat Pad Matrix Zone Item In Lobby
+                    const shopPad = new THREE.Mesh(new THREE.BoxGeometry(10, 0.4, 10), new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0x333300 }));
+                    shopPad.position.set(-15, 0.2, 0);
+                    shopPad.userData = { Name: "UpgradeShopRebirthPad", IsShop: true };
+                    worldWorkspaceGroup.add(shopPad);
+                    objects.push(shopPad);
+                    continue; 
                 }
 
-                // Scatter high-elevation survival platforms across the horizontal zone planes
-                let scatterCount = 12;
-                for (let i = 0; i < scatterCount; i++) {
-                    const rockW = 8 + Math.random() * 6;
-                    const rockH = 6 + (Math.random() * 12); // Tall enough to keep you well out of surge height bounds
-                    const rockD = 8 + Math.random() * 6;
-                    
-                    const rockGeo = new THREE.BoxGeometry(rockW, rockH, rockD);
-                    const rockMat = new THREE.MeshStandardMaterial({ color: zData.hex, roughness: 0.9 });
-                    const rockMesh = new THREE.Mesh(rockGeo, rockMat);
-                    
-                    // Position calculations distributed within field boundaries
-                    const rockX = (Math.random() - 0.5) * 60;
-                    const rockZ = zData.startZ - (Math.random() * lengthDepth);
-                    const rockY = rockH / 2 - 0.9;
-                    
-                    rockMesh.position.set(rockX, rockY, rockZ);
-                    rockMesh.castShadow = true;
-                    rockMesh.receiveShadow = true;
-                    rockMesh.userData = { isPlatform: true, width: rockW, depth: rockD, height: rockH };
-                    
-                    scene.add(rockMesh);
-                    objects.push(rockMesh);
+                // Add Retrieval Container Box Node at end of zone bounds
+                const prizeNode = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), new THREE.MeshStandardMaterial({ color: zone.hex, emissive: zone.hex }));
+                prizeNode.position.set(0, 2, zone.endZ + 10);
+                prizeNode.userData = { Name: `${zone.name}_AssetNode`, IsPrize: true, ZoneKey: zKey };
+                worldWorkspaceGroup.add(prizeNode);
+                objects.push(prizeNode);
+
+                // Scatter Survival Steps Geometry
+                let steps = 6;
+                for(let i=0; i < steps; i++) {
+                    const stepZ = zone.startZ - ((length / steps) * i) - 5;
+                    const stepX = (Math.random() - 0.5) * 65;
+                    const stepH = 6 + (Math.random() * 14);
+
+                    const block = new THREE.Mesh(new THREE.BoxGeometry(8, stepH, 8), new THREE.MeshStandardMaterial({ color: zone.hex, roughness: 0.7 }));
+                    block.position.set(stepX, stepH/2 - 0.9, stepZ);
+                    block.userData = { Name: `ObbyStep_${zKey}_${i}` };
+                    worldWorkspaceGroup.add(block);
+                    objects.push(block);
                 }
             }
+            rebuildExplorerHierarchyTree();
         }
 
-        // --- INTERACTIVE ENGINE STUDIO MANAGEMENT COMPONENT ---
-        function toggleStudio() {
+        // --- ROBLOX WORKSPACE STUDIO METHODS ---
+        function toggleStudioWorkspace() {
             if(!hasStudioAccess) return;
             isStudioMode = !isStudioMode;
-            
-            const panel = document.getElementById('studio-panel');
-            const crosshair = document.getElementById('crosshair');
-            
-            if(isStudioMode) {
-                panel.style.display = "flex";
-                crosshair.style.display = "block";
-            } else {
-                panel.style.display = "none";
-                crosshair.style.display = "none";
-                if(selectedObject) {
-                    selectedObject.material.emissive.setHex(0x000000);
-                    selectedObject = null;
-                }
-            }
+            document.getElementById('roblox-studio-gui').style.display = isStudioMode ? "grid" : "none";
+            (isStudioMode ? document.getElementById('studio-viewport') : document.getElementById('canvas-container')).appendChild(renderer.domElement);
+            onResize();
         }
 
-        function spawnStudioObject() {
-            if(!isStudioMode) return;
-            const type = document.getElementById('spawn-type').value;
-            let geo = (type === 'cube') ? new THREE.BoxGeometry(6, 6, 6) : new THREE.SphereGeometry(3, 32, 32);
+        function setStudioTool(tool) {
+            activeTool = tool;
+            document.querySelectorAll('.ribbon-tools button').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tool-${tool}`).classList.add('active');
+        }
 
-            const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
-            const mesh = new THREE.Mesh(geo, mat);
-            
-            // Injects asset component directly in forward operational target viewport vector of player position
-            mesh.position.set(player.position.x, player.position.y + 4, player.position.z - 12);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            mesh.userData = { isPlatform: true, width: 6, depth: 6, height: 6 };
-            
-            scene.add(mesh);
+        function insertStudioAsset(type) {
+            let geo = (type === 'Part') ? new THREE.BoxGeometry(6, 6, 6) : new THREE.BoxGeometry(3, 18, 3);
+            const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff }));
+            mesh.position.set(player.position.x, 8, player.position.z - 12);
+            mesh.userData = { Name: `Studio_${type}_Asset` };
+            worldWorkspaceGroup.add(mesh);
             objects.push(mesh);
-            selectStudioObject(mesh);
+            rebuildExplorerHierarchyTree();
+            selectStudioNode(mesh);
         }
 
-        function selectStudioObject(mesh) {
-            if (mesh.userData.isFloor) return; // Restrict modifying baseline zone structural planes
+        function selectStudioNode(mesh) {
             if(selectedObject) selectedObject.material.emissive.setHex(0x000000);
-            
+            if(!mesh || mesh.userData.Unremovable) { selectedObject = null; return; }
             selectedObject = mesh;
-            selectedObject.material.emissive.setHex(0x2d2d2d);
-            
-            document.getElementById('prop-color').value = "#" + selectedObject.material.color.getHexString();
-            document.getElementById('prop-scale-y').value = selectedObject.scale.y;
-            document.getElementById('prop-pos-y').value = selectedObject.position.y;
+            selectedObject.material.emissive.setHex(0x2a2a2a);
+            document.getElementById('p-color').value = "#" + selectedObject.material.color.getHexString();
+            document.getElementById('p-pos-y').value = selectedObject.position.y;
+            document.getElementById('p-scale-y').value = selectedObject.scale.y;
         }
 
-        function updateSelectedProperty() {
+        function applyPropertyChange() {
             if(!selectedObject) return;
-            selectedObject.material.color.set(document.getElementById('prop-color').value);
-            selectedObject.scale.y = parseFloat(document.getElementById('prop-scale-y').value);
-            selectedObject.position.y = parseFloat(document.getElementById('prop-pos-y').value);
-            // Recompute height dimension configuration bounding parameters dynamically
-            selectedObject.userData.height = 6 * selectedObject.scale.y; 
+            selectedObject.material.color.set(document.getElementById('p-color').value);
+            if(activeTool === 'move') selectedObject.position.y = parseFloat(document.getElementById('p-pos-y').value);
+            if(activeTool === 'scale') selectedObject.scale.y = parseFloat(document.getElementById('p-scale-y').value);
         }
 
-        function deleteSelectedObject() {
+        function deleteStudioSelection() {
             if(!selectedObject) return;
-            scene.remove(selectedObject);
-            objects = objects.filter(obj => obj !== selectedObject);
+            worldWorkspaceGroup.remove(selectedObject);
+            objects = objects.filter(o => o !== selectedObject);
             selectedObject = null;
+            rebuildExplorerHierarchyTree();
         }
 
-        // --- CONTROL CORE HANDLERS ---
+        function rebuildExplorerHierarchyTree() {
+            const tree = document.getElementById('explorer-tree-view');
+            tree.innerHTML = `<div class="tree-node" style="color:#f1c40f;">📁 Workspace</div>`;
+            worldWorkspaceGroup.children.forEach(c => {
+                const n = document.createElement('div'); n.className = "tree-node";
+                n.style.paddingLeft = "20px"; n.innerText = `🧱 ${c.userData.Name}`;
+                n.onclick = () => selectStudioNode(c);
+                tree.appendChild(n);
+            });
+        }
+
+        function testGameLive() { toggleStudioWorkspace(); }
+
+        // --- CORE LOGIC LOOP INTERACTION ---
         function onMouseDown(e) {
-            if(e.button === 2) { 
-                isRightMouseDown = true;
-                document.body.requestPointerLock();
-            }
-            if(e.button === 0 && isStudioMode) { 
+            if(e.button === 2) { isRightMouseDown = true; document.body.requestPointerLock(); }
+            if(e.button === 0 && isStudioMode) {
                 raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-                const intersects = raycaster.intersectObjects(objects);
-                if(intersects.length > 0) {
-                    selectStudioObject(intersects[0].object);
-                }
+                const hits = raycaster.intersectObjects(objects);
+                if(hits.length > 0) selectStudioNode(hits[0].object);
             }
         }
-
-        function onMouseUp(e) {
-            if(e.button === 2) {
-                isRightMouseDown = false;
-                document.exitPointerLock();
-            }
-        }
-
+        function onMouseUp(e) { if(e.button === 2) { isRightMouseDown = false; document.exitPointerLock(); } }
         function onMouseMove(e) {
-            if (isRightMouseDown) {
-                cameraRotation.theta -= e.movementX * 0.0045;
-                cameraRotation.phi += e.movementY * 0.0045;
-                cameraRotation.phi = Math.max(0.05, Math.min(Math.PI / 2 - 0.05, cameraRotation.phi));
+            if(isRightMouseDown) {
+                cameraRotation.theta -= e.movementX * 0.005;
+                cameraRotation.phi += e.movementY * 0.005;
+                cameraRotation.phi = Math.max(0.05, Math.min(Math.PI/2 - 0.05, cameraRotation.phi));
             }
         }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        function onResize() {
+            const w = isStudioMode ? document.getElementById('studio-viewport').clientWidth : window.innerWidth;
+            const h = isStudioMode ? document.getElementById('studio-viewport').clientHeight : window.innerHeight;
+            camera.aspect = w / h; camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
         }
 
-        // --- FRAME PHYSICS CALCULATION LOOP PIPELINE ---
-        function animateFrameLoop() {
-            requestAnimationFrame(animateFrameLoop);
+        // --- PHYSICS FRAME PROCESSING ENGINE ---
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
             const delta = Math.min(clock.getDelta(), 0.1);
 
-            if (player) {
-                // Gravity Mechanics
-                playerVelocity.y -= 32 * delta;
+            if (player && !isStudioMode) {
+                playerVelocity.y -= 34 * delta; // Fall gravity acceleration
 
-                // Move calculation processing
-                let moveX = 0, moveZ = 0;
-                if (keys['KeyW']) moveZ -= 1;
-                if (keys['KeyS']) moveZ += 1;
-                if (keys['KeyA']) moveX -= 1;
-                if (keys['KeyD']) moveX += 1;
+                let mx = 0, mz = 0;
+                if (keys['KeyW']) mz -= 1; if (keys['KeyS']) mz += 1;
+                if (keys['KeyA']) mx -= 1; if (keys['KeyD']) mx += 1;
 
-                const camForward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-                camForward.y = 0; camForward.normalize();
-                const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-                camRight.y = 0; camRight.normalize();
+                const forward = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion); forward.y = 0; forward.normalize();
+                const right = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion); right.y = 0; right.normalize();
+                const dir = new THREE.Vector3().addScaledVector(forward, mz).addScaledVector(right, mx).normalize();
 
-                const runDirection = new THREE.Vector3().addScaledVector(camForward, moveZ).addScaledVector(camRight, moveX).normalize();
-                player.position.addScaledVector(runDirection, baseRunSpeed * delta);
+                player.position.addScaledVector(dir, baseWalkSpeed * delta);
                 player.position.y += playerVelocity.y * delta;
 
-                // Collision bounding calculations pipeline
-                let onGround = false;
-                let activeCurrentZone = ZONES.SAFE;
+                // Collisions bounding validation box
+                let grounded = false;
+                let activeZone = ZONES.SAFE;
 
-                for (let obj of objects) {
-                    const halfW = (obj.userData.width || 80) / 2 * obj.scale.x;
-                    const halfD = (obj.userData.depth || 3000) / 2 * obj.scale.z;
-                    const halfH = (obj.userData.height || 2) / 2;
-
-                    if (Math.abs(player.position.x - obj.position.x) < halfW + 0.75 &&
-                        Math.abs(player.position.z - obj.position.z) < halfD + 0.75) {
+                for(let obj of objects) {
+                    const box = new THREE.Box3().setFromObject(obj);
+                    if(player.position.x >= box.min.x - 0.8 && player.position.x <= box.max.x + 0.8 &&
+                       player.position.z >= box.min.z - 0.8 && player.position.z <= box.max.z + 0.8) {
                         
-                        // Checking Top surface contact parameters
-                        if (player.position.y - 1.6 >= obj.position.y + halfH - 0.6 &&
-                            player.position.y - 1.6 <= obj.position.y + halfH + 0.4) {
-                            
-                            player.position.y = obj.position.y + halfH + 1.6;
+                        // Handle Shop Rebirth Pad collision interactions in Safe zone lobby area
+                        if(obj.userData.IsShop && player.position.y - 1.6 <= box.max.y + 0.5) {
+                            if(cash >= 500) {
+                                cash -= 500; rebirthLevel++;
+                                baseWalkSpeed += 4; jumpHeightVelocity += 2;
+                                document.getElementById('rebirth-display').innerText = `Rebirth Level: ${rebirthLevel}`;
+                                alert(`Rebirth Level Upgraded! Current Tier: ${rebirthLevel}`);
+                            }
+                        }
+
+                        // Handle Pickup Zone item interactive nodes collision bounds check trigger criteria
+                        if(obj.userData.IsPrize && !activeHeldItemZone) {
+                            activeHeldItemZone = obj.userData.ZoneKey;
+                            document.getElementById('inventory-display').innerText = `Carrying: [${activeHeldItemZone} Item Container]`;
+                        }
+
+                        if(player.position.y - 1.6 >= box.max.y - 0.5 && player.position.y - 1.6 <= box.max.y + 0.3) {
+                            player.position.y = box.max.y + 1.6;
                             playerVelocity.y = 0;
-                            onGround = true;
+                            grounded = true;
                         }
                     }
                 }
 
-                // Calculate horizontal boundary positions coordinates matrix to deduce current tier placement
+                // Tracking horizontal progression coordinates boundaries calculations
                 const pz = player.position.z;
-                for (let k in ZONES) {
-                    if (pz <= ZONES[k].startZ && pz > ZONES[k].endZ) {
-                        activeCurrentZone = ZONES[k];
-                        break;
-                    }
+                for(let k in ZONES) {
+                    if(pz <= ZONES[k].startZ && pz > ZONES[k].endZ) { activeZone = ZONES[k]; break; }
                 }
 
-                // Passive horizontal tracking economy payout reward loops 
-                if (onGround && activeCurrentZone !== ZONES.SAFE) {
-                    cashBalance += Math.floor(Math.abs(pz) * 0.02 * delta * 10);
-                    document.getElementById('cash-display').innerText = `CASH: $${cashBalance}`;
+                // Drop-off check interaction when returning to safe zone lobby boundaries
+                if(activeZone === ZONES.SAFE && activeHeldItemZone) {
+                    let payout = 100;
+                    if(activeHeldItemZone === "GODLY") payout = 2500;
+                    else if(activeHeldItemZone === "CELESTIAL") payout = 1200;
+                    else if(activeHeldItemZone === "SECRET") payout = 800;
+                    
+                    cash += payout;
+                    activeHeldItemZone = null;
+                    document.getElementById('inventory-display').innerText = "Carrying: None";
+                    document.getElementById('cash-display').innerText = `Cash: $${cash}`;
                 }
 
-                // Check Upgrades Pad Collision Bounds in Safe Zone
-                if (safeZoneShopPad) {
-                    const distToShop = player.position.distanceTo(safeZoneShopPad.position);
-                    if (distToShop < 4 && cashBalance >= 150) {
-                        cashBalance -= 150;
-                        baseRunSpeed += 2.5; // Gain a permanent speed boost block multiplier
-                        document.getElementById('cash-display').innerText = `CASH: $${cashBalance}`;
-                        alert(`Speed Upgrade Purchased! Current Speed Stat: ${baseRunSpeed}`);
-                    }
-                }
+                document.getElementById('zone-display').innerText = activeZone.name;
+                document.getElementById('zone-display').style.color = activeZone.color;
+                document.getElementById('speed-display').innerText = `WalkSpeed: ${baseWalkSpeed} | JumpPower: ${jumpHeightVelocity}`;
 
-                // UI Display Engine Refresh Rendering updates
-                const zPanel = document.getElementById('zone-panel');
-                const zText = document.getElementById('zone-display');
-                zText.innerText = activeCurrentZone.name;
-                zText.style.color = activeCurrentZone.color;
-                zPanel.style.borderLeftColor = activeCurrentZone.color;
-
-                // Handle Periodic Surge Event Processing Timer Loops 
+                // Lava countdown periodic state triggers loop logic block updates
                 surgeTimer -= delta;
-                if (surgeTimer <= 0) {
+                if(surgeTimer <= 0) {
                     isLavaSurging = !isLavaSurging;
-                    surgeTimer = isLavaSurging ? 10.0 : 25.0; // 10 seconds of active threat, 25 seconds of flat run farming time
+                    surgeTimer = isLavaSurging ? 10.0 : 25.0;
                 }
 
-                const timerText = document.getElementById('timer-display');
-                if (isLavaSurging) {
-                    timerText.innerText = `LAVA FLOOD ACTIVE: ${surgeTimer.toFixed(1)}s`;
-                    timerText.style.color = "#ff3300";
-                    targetLavaHeight = 4.5; // Elevate threat surface floor line upwards over valley basins
+                const timerDisp = document.getElementById('timer-display');
+                if(isLavaSurging) {
+                    timerDisp.innerText = `LAVA FLOODING GROUND: ${surgeTimer.toFixed(1)}s`;
+                    timerDisp.style.color = "#ff2200"; targetLavaHeight = 6.0;
                 } else {
-                    timerText.innerText = `LAVA SURGE IN: ${surgeTimer.toFixed(1)}s`;
-                    timerText.style.color = "#ffaa00";
-                    targetLavaHeight = -2.0; // Recede back beneath standard elevation steps
+                    timerDisp.innerText = `NEXT LAVA SURGE IN: ${surgeTimer.toFixed(1)}s`;
+                    timerDisp.style.color = "#ffaa00"; targetLavaHeight = -3.0;
                 }
 
-                // Smooth linear translation interpolation for lava plane mechanics
-                lavaPlaneMesh.position.y += (targetLavaHeight - lavaPlaneMesh.position.y) * 5 * delta;
+                lavaMesh.position.y += (targetLavaHeight - lavaMesh.position.y) * 4 * delta;
 
-                // Jump input logic state processing
-                if (keys['Space'] && onGround) playerVelocity.y = 13;
+                if (keys['Space'] && grounded) playerVelocity.y = jumpHeightVelocity;
 
-                // Death elimination criteria check triggered by tracking lava intersection metrics
-                if (player.position.y < lavaPlaneMesh.position.y + 1.8) {
-                    player.position.set(0, 4, 15); // Send player back to Safe baseline spawn pad point
-                    playerVelocity.set(0,0,0);
-                    isLavaSurging = false;
-                    surgeTimer = 25.0;
-                    targetLavaHeight = -2.0;
-                    lavaPlaneMesh.position.y = -2.0;
+                // Lava contact death system triggers total retrieval data dropping reset sequences
+                if (player.position.y < lavaMesh.position.y + 1.8) {
+                    player.position.set(0, 4, 20); playerVelocity.set(0,0,0);
+                    activeHeldItemZone = null; document.getElementById('inventory-display').innerText = "Carrying: None";
+                    isLavaSurging = false; surgeTimer = 25.0; targetLavaHeight = -3.0; lavaMesh.position.y = -3.0;
                 }
-
-                // Third Person Camera Tracker Processing Viewport matrices
-                const targetCamX = player.position.x + cameraRadius * Math.sin(cameraRotation.theta) * Math.cos(cameraRotation.phi);
-                const targetCamY = player.position.y + cameraRadius * Math.sin(cameraRotation.phi);
-                const targetCamZ = player.position.z + cameraRadius * Math.cos(cameraRotation.theta) * Math.cos(cameraRotation.phi);
-
-                camera.position.set(targetCamX, targetCamY, targetCamZ);
-                camera.lookAt(player.position.x, player.position.y + 1.2, player.position.z);
             }
+
+            // Roblox Camera Tracker Following Matrices Offset Position Interpolation
+            const targetX = player.position.x + cameraRadius * Math.sin(cameraRotation.theta) * Math.cos(cameraRotation.phi);
+            const targetY = player.position.y + cameraRadius * Math.sin(cameraRotation.phi);
+            const targetZ = player.position.z + cameraRadius * Math.cos(cameraRotation.theta) * Math.cos(cameraRotation.phi);
+            camera.position.set(targetX, targetY, targetZ);
+            camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
 
             renderer.render(scene, camera);
         }

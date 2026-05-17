@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survive Lava for Brainrots - Accurate Engine</title>
+    <!-- Include Three.js for 3D Graphics Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; user-select: none; }
+        #canvas-container { width: 100%; height: 100%; display: none; }
+        
+        /* Auth Overlay Screen */
+        .overlay-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #11111a, #07070d); display: flex; justify-content: center; align-items: center; z-index: 100; }
+        .auth-box { background: rgba(255, 255, 255, 0.03); padding: 40px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); width: 320px; text-align: center; color: white; }
+        .auth-box h2 { margin-bottom: 24px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+        .auth-box input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 8px; border: none; background: rgba(255,255,255,0.08); color: white; box-sizing: border-box; font-size: 14px; transition: 0.2s; }
+        .auth-box input:focus { background: rgba(255,255,255,0.15); outline: none; }
+        .auth-box button { width: 100%; padding: 14px; margin-top: 18px; border-radius: 8px; border: none; background: #0066ff; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 14px; letter-spacing: 1px; }
+        .auth-box button:hover { background: #0052cc; }
+        .auth-switch { margin-top: 18px; font-size: 12px; color: #888; cursor: pointer; }
+        
+        /* HUD UI Overlay Elements */
+        #hud { position: absolute; top: 20px; left: 20px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); pointer-events: none; display: none; z-index: 10; }
+        .hud-panel { background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #fff; }
+        .zone-tag { font-size: 26px; font-weight: 900; letter-spacing: 1px; }
+        .timer-tag { font-size: 18px; font-family: monospace; color: #ffaa00; margin-top: 5px; }
+        .cash-tag { font-size: 20px; color: #00ff88; font-weight: bold; }
+        
+        #studio-btn { position: absolute; top: 20px; right: 20px; padding: 14px 28px; background: #e25822; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; display: none; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 14px; letter-spacing: 1px; }
+        
+        /* Roblox Studio Inspired Level Editor Interface */
+        #studio-panel { position: absolute; top: 0; left: 0; width: 320px; height: 100%; background: #1e1e1e; border-right: 2px solid #2d2d2d; color: #fff; display: none; flex-direction: column; z-index: 60; box-sizing: border-box; }
+        .studio-header { padding: 18px; background: #151515; font-weight: bold; font-size: 16px; border-bottom: 1px solid #2d2d2d; display: flex; justify-content: space-between; align-items: center; letter-spacing: 0.5px; }
+        .studio-close { cursor: pointer; color: #ff4444; font-size: 18px; }
+        .studio-content { padding: 20px; flex: 1; overflow-y: auto; }
+        .studio-group { margin-bottom: 22px; }
+        .studio-group label { display: block; font-size: 11px; color: #999; margin-bottom: 6px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+        .studio-group select, .studio-group input { width: 100%; padding: 10px; background: #2d2d2d; border: 1px solid #3d3d3d; color: white; border-radius: 6px; box-sizing: border-box; font-size: 13px; }
+        .studio-btn-action { width: 100%; padding: 12px; background: #007acc; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 13px; transition: 0.2s; }
+        .studio-btn-action:hover { background: #0062a3; }
+        
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; background: white; border-radius: 5px; transform: translate(-50%, -50%); display: none; pointer-events: none; z-index: 5; border: 1.5px solid black; }
+    </style>
+</head>
+<body>
+
+    <!-- Authentication Interface Gate -->
+    <div id="auth-screen" class="overlay-screen">
+        <div class="auth-box">
+            <h2 id="auth-title">Account Login</h2>
+            <input type="text" id="auth-username" placeholder="Username">
+            <input type="password" id="auth-password" placeholder="Password">
+            <button id="auth-submit" onclick="handleAuth()">LOGIN</button>
+            <div id="auth-switch" class="auth-switch" onclick="toggleAuthMode()">New Creator? Register Profile</div>
+        </div>
+    </div>
+
+    <!-- Gameplay Dashboard HUD -->
+    <div id="hud">
+        <div class="hud-panel" id="zone-panel">
+            <div id="zone-display" class="zone-tag">SAFE ZONE</div>
+            <div id="timer-display" class="timer-tag">LAVA SURGE IN: 25.0s</div>
+        </div>
+        <div class="hud-panel" style="border-left-color: #00ff88;">
+            <div id="cash-display" class="cash-tag">CASH: $0</div>
+            <div style="font-size: 12px; color: #aaa; margin-top: 2px;">Step on Shop pads to upgrade speed!</div>
+        </div>
+    </div>
+    
+    <button id="studio-btn" onclick="toggleStudio()">🛠️ ROBLOX STUDIO</button>
+
+    <!-- Interactive Workspace Level Editor Panel -->
+    <div id="studio-panel">
+        <div class="studio-header">
+            <span>Roblox Studio - Workspace Explorer</span>
+            <span class="studio-close" onclick="toggleStudio()">✕</span>
+        </div>
+        <div class="studio-content">
+            <div class="studio-group">
+                <label>Toolbox: Primitive Assembly</label>
+                <select id="spawn-type">
+                    <option value="cube">Part (Block Solid)</option>
+                    <option value="sphere">Ball (Sphere Structural)</option>
+                </select>
+                <button class="studio-btn-action" onclick="spawnStudioObject()">Insert Object Asset</button>
+            </div>
+            <hr style="border: 0; height: 1px; background: #2d2d2d; margin: 20px 0;">
+            <div class="studio-group">
+                <label>Properties Editor Window</label>
+                <div style="font-size: 11px; color:#666; margin-bottom:12px; line-height: 1.4;">Aim center dot crosshair at any object part asset inside the world viewport to load runtime attributes.</div>
+                
+                <label>BrickColor / RGB Material</label>
+                <input type="color" id="prop-color" value="#ffffff" onchange="updateSelectedProperty()">
+                
+                <label style="margin-top:12px;">Size - Y Vector (Height Axis)</label>
+                <input type="number" id="prop-scale-y" value="1" step="0.5" oninput="updateSelectedProperty()">
+                
+                <label style="margin-top:12px;">Position - Y Coordinate</label>
+                <input type="number" id="prop-pos-y" value="0" step="0.5" oninput="updateSelectedProperty()">
+            </div>
+            <button class="studio-btn-action" style="background:#b32424;" onclick="deleteSelectedObject()">Destroy Selected Part</button>
+        </div>
+    </div>
+
+    <div id="crosshair"></div>
+    <div id="canvas-container"></div>
+
+    <script>
+        // --- CORE GAME ARCHITECTURE ENGINE CONFIG ---
+        let isSignUp = false;
+        let isStudioMode = false;
+        let hasStudioAccess = false;
+
+        // Graphics Variables 
+        let scene, camera, renderer, clock;
+        let player, playerVelocity = new THREE.Vector3();
+        let keys = {};
+        let objects = []; 
+        let safeZoneShopPad;
+        
+        // Horizontal Wave Game State Sync Constants
+        let cashBalance = 0;
+        let baseRunSpeed = 16; 
+        let surgeTimer = 25.0; 
+        let isLavaSurging = false;
+        let lavaPlaneMesh;
+        let targetLavaHeight = -2.0; 
+        
+        // Selection Tracking Vector Arrays
+        let selectedObject = null;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+
+        // 3rd Person Orbit System Configurations
+        let cameraRotation = { theta: 0, phi: Math.PI / 5 };
+        let cameraRadius = 16;
+        let isRightMouseDown = false;
+
+        // Real Horizontal Field Game Rarity Matrix Definitions
+        const ZONES = {
+            SAFE:     { name: "SAFE ZONE", color: "#ffffff", hex: 0x3a3a3a, startZ: 30,    endZ: -20 },
+            COMMON:   { name: "COMMON",    color: "#b0b0b0", hex: 0x7f8c8d, startZ: -20,   endZ: -100 },
+            RARE:     { name: "RARE",      color: "#55ff55", hex: 0x2ecc71, startZ: -100,  endZ: -200 },
+            EPIC:     { name: "EPIC",      color: "#5555ff", hex: 0x3498db, startZ: -200,  endZ: -320 },
+            LEGENDARY:{ name: "LEGENDARY", color: "#ffff55", hex: 0xf1c40f, startZ: -320,  endZ: -460 },
+            MYTHIC:   { name: "MYTHIC",    color: "#ff55ff", hex: 0x9b59b6, startZ: -460,  endZ: -620 },
+            SECRET:   { name: "SECRET",    color: "#ff5555", hex: 0xe74c3c, startZ: -620,  endZ: -800 },
+            CELESTIAL:{ name: "CELESTIAL", color: "#55ffff", hex: 0x1abc9c, startZ: -800,  endZ: -1000 },
+            GODLY:    { name: "GODLY",     color: "#ffaa00", hex: 0xd35400, startZ: -1000, endZ: -1300 }
+        };
+
+        // --- AUTHENTICATION INTERFACE LOGIC ---
+        function toggleAuthMode() {
+            isSignUp = !isSignUp;
+            document.getElementById('auth-title').innerText = isSignUp ? "Create Admin User" : "Account Login";
+            document.getElementById('auth-submit').innerText = isSignUp ? "SIGN UP & LAUNCH" : "LOGIN";
+            document.getElementById('auth-switch').innerText = isSignUp ? "Already a Creator? Sign In" : "New Creator? Register Profile";
+        }
+
+        function handleAuth() {
+            const user = document.getElementById('auth-username').value.trim();
+            const pass = document.getElementById('auth-password').value.trim();
+
+            if(!user || !pass) {
+                alert("Credentials inputs cannot remain empty.");
+                return;
+            }
+
+            // Secure Studio Portal Validation Key Switch
+            if(user === "king" && pass === "icreategames") {
+                hasStudioAccess = true;
+                document.getElementById('studio-btn').style.display = "block";
+            }
+
+            document.getElementById('auth-screen').style.display = "none";
+            document.getElementById('canvas-container').style.display = "block";
+            document.getElementById('hud').style.display = "block";
+            
+            initGameEngine();
+        }
+
+        // --- GRAPHICS & RENDERING INITIALIZATION ---
+        function initGameEngine() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x080810);
+            scene.fog = new THREE.FogExp2(0x080810, 0.008);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+            clock = new THREE.Clock();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Lighting Rig Matrix
+            const ambient = new THREE.AmbientLight(0xffffff, 0.35);
+            scene.add(ambient);
+
+            const skySun = new THREE.DirectionalLight(0xffffff, 0.75);
+            skySun.position.set(100, 300, -200);
+            skySun.castShadow = true;
+            skySun.shadow.mapSize.width = 2048;
+            skySun.shadow.mapSize.height = 2048;
+            scene.add(skySun);
+
+            // Construct Flat Runway Fields Map Pipeline
+            generateHorizontalMap();
+
+            // Setup Playable Block Avatar Mesh
+            const avatarGeo = new THREE.BoxGeometry(1.6, 3.2, 1.6);
+            const avatarMat = new THREE.MeshStandardMaterial({ color: 0x0099ff, roughness: 0.4 });
+            player = new THREE.Mesh(avatarGeo, avatarMat);
+            player.position.set(0, 2, 10); // Spawns directly inside the safe baseline pad area
+            player.castShadow = true;
+            scene.add(player);
+
+            // Setup Flat Surge Lava Object plane spanning the full area array 
+            const lavaGeo = new THREE.BoxGeometry(400, 4, 3000);
+            const lavaMat = new THREE.MeshStandardMaterial({ color: 0xff1100, emissive: 0xcc0000, roughness: 0.1 });
+            lavaPlaneMesh = new THREE.Mesh(lavaGeo, lavaMat);
+            lavaPlaneMesh.position.set(0, targetLavaHeight, -600);
+            scene.add(lavaPlaneMesh);
+
+            // Input Controllers Event Handlers
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('keydown', (e) => keys[e.code] = true);
+            window.addEventListener('keyup', (e) => keys[e.code] = false);
+            window.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('mouseup', onMouseUp);
+            window.addEventListener('mousemove', onMouseMove);
+
+            animateFrameLoop();
+        }
+
+        // --- MAP RUNWAY PIPELINE METHOD GENERATION ---
+        function generateHorizontalMap() {
+            // Loop array structural bounds to layout floor zones
+            for (let key in ZONES) {
+                const zData = ZONES[key];
+                const centerZ = (zData.startZ + zData.endZ) / 2;
+                const lengthDepth = Math.abs(zData.startZ - zData.endZ);
+                
+                // Floor plates representing the valley fields
+                const floorGeo = new THREE.BoxGeometry(80, 2, lengthDepth);
+                const floorMat = new THREE.MeshStandardMaterial({ color: zData.hex, roughness: 0.8 });
+                const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+                floorMesh.position.set(0, -1, centerZ);
+                floorMesh.receiveShadow = true;
+                floorMesh.userData = { isFloor: true, zoneName: zData.name };
+                scene.add(floorMesh);
+                objects.push(floorMesh);
+
+                // Safe Zone Speed Upgrade Shop Pad Matrix 
+                if (key === "SAFE") {
+                    const shopGeo = new THREE.BoxGeometry(8, 0.4, 8);
+                    const shopMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x003311 });
+                    safeZoneShopPad = new THREE.Mesh(shopGeo, shopMat);
+                    safeZoneShopPad.position.set(0, 0.2, 0);
+                    scene.add(safeZoneShopPad);
+                    continue; // Skip layout rocks for safety zone center field
+                }
+
+                // Scatter high-elevation survival platforms across the horizontal zone planes
+                let scatterCount = 12;
+                for (let i = 0; i < scatterCount; i++) {
+                    const rockW = 8 + Math.random() * 6;
+                    const rockH = 6 + (Math.random() * 12); // Tall enough to keep you well out of surge height bounds
+                    const rockD = 8 + Math.random() * 6;
+                    
+                    const rockGeo = new THREE.BoxGeometry(rockW, rockH, rockD);
+                    const rockMat = new THREE.MeshStandardMaterial({ color: zData.hex, roughness: 0.9 });
+                    const rockMesh = new THREE.Mesh(rockGeo, rockMat);
+                    
+                    // Position calculations distributed within field boundaries
+                    const rockX = (Math.random() - 0.5) * 60;
+                    const rockZ = zData.startZ - (Math.random() * lengthDepth);
+                    const rockY = rockH / 2 - 0.9;
+                    
+                    rockMesh.position.set(rockX, rockY, rockZ);
+                    rockMesh.castShadow = true;
+                    rockMesh.receiveShadow = true;
+                    rockMesh.userData = { isPlatform: true, width: rockW, depth: rockD, height: rockH };
+                    
+                    scene.add(rockMesh);
+                    objects.push(rockMesh);
+                }
+            }
+        }
+
+        // --- INTERACTIVE ENGINE STUDIO MANAGEMENT COMPONENT ---
+        function toggleStudio() {
+            if(!hasStudioAccess) return;
+            isStudioMode = !isStudioMode;
+            
+            const panel = document.getElementById('studio-panel');
+            const crosshair = document.getElementById('crosshair');
+            
+            if(isStudioMode) {
+                panel.style.display = "flex";
+                crosshair.style.display = "block";
+            } else {
+                panel.style.display = "none";
+                crosshair.style.display = "none";
+                if(selectedObject) {
+                    selectedObject.material.emissive.setHex(0x000000);
+                    selectedObject = null;
+                }
+            }
+        }
+
+        function spawnStudioObject() {
+            if(!isStudioMode) return;
+            const type = document.getElementById('spawn-type').value;
+            let geo = (type === 'cube') ? new THREE.BoxGeometry(6, 6, 6) : new THREE.SphereGeometry(3, 32, 32);
+
+            const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+            const mesh = new THREE.Mesh(geo, mat);
+            
+            // Injects asset component directly in forward operational target viewport vector of player position
+            mesh.position.set(player.position.x, player.position.y + 4, player.position.z - 12);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData = { isPlatform: true, width: 6, depth: 6, height: 6 };
+            
+            scene.add(mesh);
+            objects.push(mesh);
+            selectStudioObject(mesh);
+        }
+
+        function selectStudioObject(mesh) {
+            if (mesh.userData.isFloor) return; // Restrict modifying baseline zone structural planes
+            if(selectedObject) selectedObject.material.emissive.setHex(0x000000);
+            
+            selectedObject = mesh;
+            selectedObject.material.emissive.setHex(0x2d2d2d);
+            
+            document.getElementById('prop-color').value = "#" + selectedObject.material.color.getHexString();
+            document.getElementById('prop-scale-y').value = selectedObject.scale.y;
+            document.getElementById('prop-pos-y').value = selectedObject.position.y;
+        }
+
+        function updateSelectedProperty() {
+            if(!selectedObject) return;
+            selectedObject.material.color.set(document.getElementById('prop-color').value);
+            selectedObject.scale.y = parseFloat(document.getElementById('prop-scale-y').value);
+            selectedObject.position.y = parseFloat(document.getElementById('prop-pos-y').value);
+            // Recompute height dimension configuration bounding parameters dynamically
+            selectedObject.userData.height = 6 * selectedObject.scale.y; 
+        }
+
+        function deleteSelectedObject() {
+            if(!selectedObject) return;
+            scene.remove(selectedObject);
+            objects = objects.filter(obj => obj !== selectedObject);
+            selectedObject = null;
+        }
+
+        // --- CONTROL CORE HANDLERS ---
+        function onMouseDown(e) {
+            if(e.button === 2) { 
+                isRightMouseDown = true;
+                document.body.requestPointerLock();
+            }
+            if(e.button === 0 && isStudioMode) { 
+                raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+                const intersects = raycaster.intersectObjects(objects);
+                if(intersects.length > 0) {
+                    selectStudioObject(intersects[0].object);
+                }
+            }
+        }
+
+        function onMouseUp(e) {
+            if(e.button === 2) {
+                isRightMouseDown = false;
+                document.exitPointerLock();
+            }
+        }
+
+        function onMouseMove(e) {
+            if (isRightMouseDown) {
+                cameraRotation.theta -= e.movementX * 0.0045;
+                cameraRotation.phi += e.movementY * 0.0045;
+                cameraRotation.phi = Math.max(0.05, Math.min(Math.PI / 2 - 0.05, cameraRotation.phi));
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- FRAME PHYSICS CALCULATION LOOP PIPELINE ---
+        function animateFrameLoop() {
+            requestAnimationFrame(animateFrameLoop);
+            const delta = Math.min(clock.getDelta(), 0.1);
+
+            if (player) {
+                // Gravity Mechanics
+                playerVelocity.y -= 32 * delta;
+
+                // Move calculation processing
+                let moveX = 0, moveZ = 0;
+                if (keys['KeyW']) moveZ -= 1;
+                if (keys['KeyS']) moveZ += 1;
+                if (keys['KeyA']) moveX -= 1;
+                if (keys['KeyD']) moveX += 1;
+
+                const camForward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                camForward.y = 0; camForward.normalize();
+                const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                camRight.y = 0; camRight.normalize();
+
+                const runDirection = new THREE.Vector3().addScaledVector(camForward, moveZ).addScaledVector(camRight, moveX).normalize();
+                player.position.addScaledVector(runDirection, baseRunSpeed * delta);
+                player.position.y += playerVelocity.y * delta;
+
+                // Collision bounding calculations pipeline
+                let onGround = false;
+                let activeCurrentZone = ZONES.SAFE;
+
+                for (let obj of objects) {
+                    const halfW = (obj.userData.width || 80) / 2 * obj.scale.x;
+                    const halfD = (obj.userData.depth || 3000) / 2 * obj.scale.z;
+                    const halfH = (obj.userData.height || 2) / 2;
+
+                    if (Math.abs(player.position.x - obj.position.x) < halfW + 0.75 &&
+                        Math.abs(player.position.z - obj.position.z) < halfD + 0.75) {
+                        
+                        // Checking Top surface contact parameters
+                        if (player.position.y - 1.6 >= obj.position.y + halfH - 0.6 &&
+                            player.position.y - 1.6 <= obj.position.y + halfH + 0.4) {
+                            
+                            player.position.y = obj.position.y + halfH + 1.6;
+                            playerVelocity.y = 0;
+                            onGround = true;
+                        }
+                    }
+                }
+
+                // Calculate horizontal boundary positions coordinates matrix to deduce current tier placement
+                const pz = player.position.z;
+                for (let k in ZONES) {
+                    if (pz <= ZONES[k].startZ && pz > ZONES[k].endZ) {
+                        activeCurrentZone = ZONES[k];
+                        break;
+                    }
+                }
+
+                // Passive horizontal tracking economy payout reward loops 
+                if (onGround && activeCurrentZone !== ZONES.SAFE) {
+                    cashBalance += Math.floor(Math.abs(pz) * 0.02 * delta * 10);
+                    document.getElementById('cash-display').innerText = `CASH: $${cashBalance}`;
+                }
+
+                // Check Upgrades Pad Collision Bounds in Safe Zone
+                if (safeZoneShopPad) {
+                    const distToShop = player.position.distanceTo(safeZoneShopPad.position);
+                    if (distToShop < 4 && cashBalance >= 150) {
+                        cashBalance -= 150;
+                        baseRunSpeed += 2.5; // Gain a permanent speed boost block multiplier
+                        document.getElementById('cash-display').innerText = `CASH: $${cashBalance}`;
+                        alert(`Speed Upgrade Purchased! Current Speed Stat: ${baseRunSpeed}`);
+                    }
+                }
+
+                // UI Display Engine Refresh Rendering updates
+                const zPanel = document.getElementById('zone-panel');
+                const zText = document.getElementById('zone-display');
+                zText.innerText = activeCurrentZone.name;
+                zText.style.color = activeCurrentZone.color;
+                zPanel.style.borderLeftColor = activeCurrentZone.color;
+
+                // Handle Periodic Surge Event Processing Timer Loops 
+                surgeTimer -= delta;
+                if (surgeTimer <= 0) {
+                    isLavaSurging = !isLavaSurging;
+                    surgeTimer = isLavaSurging ? 10.0 : 25.0; // 10 seconds of active threat, 25 seconds of flat run farming time
+                }
+
+                const timerText = document.getElementById('timer-display');
+                if (isLavaSurging) {
+                    timerText.innerText = `LAVA FLOOD ACTIVE: ${surgeTimer.toFixed(1)}s`;
+                    timerText.style.color = "#ff3300";
+                    targetLavaHeight = 4.5; // Elevate threat surface floor line upwards over valley basins
+                } else {
+                    timerText.innerText = `LAVA SURGE IN: ${surgeTimer.toFixed(1)}s`;
+                    timerText.style.color = "#ffaa00";
+                    targetLavaHeight = -2.0; // Recede back beneath standard elevation steps
+                }
+
+                // Smooth linear translation interpolation for lava plane mechanics
+                lavaPlaneMesh.position.y += (targetLavaHeight - lavaPlaneMesh.position.y) * 5 * delta;
+
+                // Jump input logic state processing
+                if (keys['Space'] && onGround) playerVelocity.y = 13;
+
+                // Death elimination criteria check triggered by tracking lava intersection metrics
+                if (player.position.y < lavaPlaneMesh.position.y + 1.8) {
+                    player.position.set(0, 4, 15); // Send player back to Safe baseline spawn pad point
+                    playerVelocity.set(0,0,0);
+                    isLavaSurging = false;
+                    surgeTimer = 25.0;
+                    targetLavaHeight = -2.0;
+                    lavaPlaneMesh.position.y = -2.0;
+                }
+
+                // Third Person Camera Tracker Processing Viewport matrices
+                const targetCamX = player.position.x + cameraRadius * Math.sin(cameraRotation.theta) * Math.cos(cameraRotation.phi);
+                const targetCamY = player.position.y + cameraRadius * Math.sin(cameraRotation.phi);
+                const targetCamZ = player.position.z + cameraRadius * Math.cos(cameraRotation.theta) * Math.cos(cameraRotation.phi);
+
+                camera.position.set(targetCamX, targetCamY, targetCamZ);
+                camera.lookAt(player.position.x, player.position.y + 1.2, player.position.z);
+            }
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
